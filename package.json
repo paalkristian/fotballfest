@@ -1,0 +1,26 @@
+{
+  "name": "fotballfest",
+  "version": "1.0.0",
+  "description": "Backend serving fotballfest.herokuapp.com",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EsbenAarz/fotballfest.git"
+  },
+  "author": "Esben Aarseth",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/EsbenAarz/fotballfest/issues"
+  },
+  "homepage": "https://github.com/EsbenAarz/fotballfest#readme",
+  "dependencies": {
+    "ejs": "^2.6.1",
+    "express": "^4.16.3"
+  },
+  "devDependencies": {
+    "object.values": "^1.0.4"
+  }
+}
