@@ -21,20 +21,20 @@ let deltakelser = [];
 
 const rootUrl = process.env.ROOT_URL || 'http://localhost:' + (process.env.PORT || 3001);
 
+function createLink(href, method, accepts) {
+    return {
+        href: href,
+        method: method,
+        accepts: accepts
+    };
+}
+
 const decorateDeltakelseWithLinks = (match, deltakelse) => {
     return {
         navn: deltakelse.navn,
         _links: {
-            "removeFromAttendees": {
-                "href": `${rootUrl}/api/attendees/${deltakelse.id}`,
-                "method": 'DELETE',
-                "accepts": 'application/json'
-            },
-            "attendeesToSameGame": {
-                "href": `${rootUrl}/api/matches/attendees/${deltakelse.kamp}`,
-                "method": 'GET',
-                "accepts": 'application/json'
-            }
+            "removeFromAttendees": createLink(`${rootUrl}/api/attendees/${deltakelse.id}`, 'DELETE', 'application/json'),
+            "attendeesToSameGame": createLink(`${rootUrl}/api/matches/attendees/${deltakelse.kamp}`, 'GET', 'application/json')
         }
     }
 };
@@ -47,25 +47,29 @@ const addAttendeesToMatch = (match) => {
                 .map(deltakelse => {
                     return decorateDeltakelseWithLinks(match, deltakelse);
                 })
-        },
-        match
-    )
+        }, match);
 };
 
-
+const decorateMatchWithLinks = (match) => {
+    return Object.assign({
+        _links: {
+            "attendMatch": createLink(`${rootUrl}/api/attendees`, 'POST', 'application/json')
+        }
+    }, match);
+};
 
 const matches = () => {
     let groupMatches = Object.values(worldcupData.groups).reduce(
-        (allMatches, group) => allMatches.concat(Object.values(group.matches)).map(addAttendeesToMatch),
+        (allMatches, group) => allMatches.concat(Object.values(group.matches)).map(decorateMatchWithLinks).map(addAttendeesToMatch),
         []
     );
 
     let knockoutMatches = Object.values(worldcupData.knockout).reduce(
-        (allMatches, round) => allMatches.concat(Object.values(round.matches)).map(addAttendeesToMatch),
+        (allMatches, round) => allMatches.concat(Object.values(round.matches)).map(decorateMatchWithLinks).map(addAttendeesToMatch),
         []
     );
 
-    return  [...groupMatches, ...knockoutMatches];
+    return [...groupMatches, ...knockoutMatches];
 };
 
 app.get("/api/matches", (req, res) => {
@@ -79,17 +83,28 @@ app.get('/api/matches/attendees/:matchId', (req, res) => {
     res.send(matches().filter(match => match.name == matchId).map(match => match.attendees));
 });
 
+function validateAttendance(req, res) {
+    const attendance = req.body;
+    if (typeof attendance.navn !== 'string') {
+        console.log('Kunne ikke legge til deltaker ' + attendance.navn);
+        res.status(400).send({message: 'deltaker må være av typen string'});
+        return false;
+    } else if (typeof attendance.kamp !== 'number') {
+        console.log('Kamp er udefinert');
+        res.status(400).send({message: 'kamp må være definert'});
+        return false;
+    } else if (typeof matches().find(match => match.name === attendance.kamp) === 'undefined') {
+        console.log('Kunne ikke finne kamp med id ' + attendance.kamp);
+        res.status(400).send({message: `Kunne ikke finne kamp med id ${attendance.kamp}`});
+        return false;
+    }
+    return true;
+}
+
 app.post('/api/attendees', (req, res) => {
     const body = req.body;
-    if (typeof body.navn === 'undefined') {
-        console.log('Deltaker er udefinert');
-        res.status(400).send({message: 'deltaker must be defined'});
-    } else if (typeof body.kamp === 'undefined') {
-        console.log('Kamp er udefinert');
-        res.status(400).send({message: 'kamp must be defined'});
-    } else if (typeof matches().find(match => match.name === body.kamp) === 'undefined') {
-        console.log('Kunne ikke finne kamp med id ' + body.kamp);
-        res.status(400).send({message: `Failed to find kamp with id ${body.kamp}`});
+    if (!validateAttendance(req, res)) {
+        return;
     }
 
     const confirmation = {navn: body.navn, kamp: body.kamp, id: deltakerId++};
@@ -99,10 +114,10 @@ app.post('/api/attendees', (req, res) => {
 });
 
 app.delete('/api/attendees/:id', (req, res) => {
-    if(typeof deltakelser.find(deltakelse => deltakelse.id === req.params.id) === 'undefined') {
+    if (typeof deltakelser.find(deltakelse => deltakelse.id === req.params.id) === 'undefined') {
         res.status(400).send({message: 'Could not find attendance with id: ' + req.params.id});
         return;
-    };
+    }
     deltakelser = deltakelser.filter(deltakelse => deltakelse.id === req.params.id);
     res.status(204).send();
 });
