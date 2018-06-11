@@ -1,6 +1,7 @@
 const express = require('express');
 const fs = require('fs');
 const values = require('object.values');
+const auth = require('basic-auth');
 
 const app = express();
 
@@ -20,6 +21,19 @@ let deltakerId = 0;
 let deltakelser = [];
 
 const rootUrl = process.env.ROOT_URL || 'http://localhost:' + (process.env.PORT || 3001);
+
+const validateRequest = (req, res) => {
+    const user = auth(req);
+    if (typeof user === 'undefined') {
+        res.status(401).send({message: 'Did you forget to pass basic auth credentials?'});
+        return false;
+    }
+    if (user.name !== 'kontraskjaeret' || user.pass !== 'Sommerjobb2018') {
+        res.status(401).send({message: 'Did you pass correct credentials?'});
+        return false;
+    }
+    return true;
+};
 
 function createLink(href, method, accepts) {
     return {
@@ -73,12 +87,18 @@ const matches = () => {
 };
 
 app.get("/api/matches", (req, res) => {
+    if(!validateRequest(req, res)) {
+        return;
+    }
     res.send({
         matches: matches(),
     });
 });
 
 app.get('/api/matches/attendees/:matchId', (req, res) => {
+    if(!validateRequest(req, res)) {
+        return;
+    }
     var matchId = req.params.matchId;
     res.send(matches().filter(match => match.name == matchId).map(match => match.attendees));
 });
@@ -102,6 +122,9 @@ function validateAttendance(req, res) {
 }
 
 app.post('/api/attendees', (req, res) => {
+    if(!validateRequest(req, res)) {
+        return;
+    }
     const body = req.body;
     if (!validateAttendance(req, res)) {
         return;
@@ -114,6 +137,9 @@ app.post('/api/attendees', (req, res) => {
 });
 
 app.delete('/api/attendees/:id', (req, res) => {
+    if(!validateRequest(req, res)) {
+        return;
+    }
     if (typeof deltakelser.find(deltakelse => deltakelse.id === req.params.id) === 'undefined') {
         res.status(400).send({message: 'Could not find attendance with id: ' + req.params.id});
         return;

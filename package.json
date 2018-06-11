@@ -18,6 +18,7 @@
   },
   "homepage": "https://github.com/EsbenAarz/fotballfest#readme",
   "dependencies": {
+    "basic-auth": "^2.0.0",
     "ejs": "^2.6.1",
     "express": "^4.16.3"
   },
