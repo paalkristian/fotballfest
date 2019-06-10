@@ -20,10 +20,11 @@
   "dependencies": {
     "basic-auth": "^2.0.0",
     "ejs": "^2.6.1",
-    "express": "^4.16.3"
+    "express": "^4.16.3",
+    "object.values": "^1.0.4",
+    "yr.no-forecast": "git+https://github.com/paalkristian/yr.no-forecast#2.1.1"
   },
   "devDependencies": {
     "nodemon": "^1.17.5",
-    "object.values": "^1.0.4"
   }
 }
