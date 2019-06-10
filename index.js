@@ -64,7 +64,7 @@ const addAttendeesToMatch = (match) => {
     return Object.assign(
         {
             attendees: deltakelser
-                .filter(deltakelse => deltakelse.kamp === match.name)
+                .filter(deltakelse => deltakelse.kamp === match.id)
                 .map(deltakelse => {
                     return decorateDeltakelseWithLinks(match, deltakelse);
                 })
@@ -113,7 +113,7 @@ function validateAttendance(req, res) {
         console.log('Kamp er udefinert');
         res.status(400).send({message: 'kamp må være definert'});
         return false;
-    } else if (typeof matches().find(match => match.name === attendance.kamp) === 'undefined') {
+    } else if (typeof matches().find(match => match.id === attendance.kamp) === 'undefined') {
         console.log('Kunne ikke finne kamp med id ' + attendance.kamp);
         res.status(400).send({message: `Kunne ikke finne kamp med id ${attendance.kamp}`});
         return false;
