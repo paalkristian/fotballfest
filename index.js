@@ -2,7 +2,6 @@ const express = require('express');
 const fs = require('fs');
 const values = require('object.values');
 const auth = require('basic-auth');
-
 const yrno = require("yr.no-forecast")({
     version: "1.9", // this is the default if not provided,
     request: {
@@ -10,6 +9,8 @@ const yrno = require("yr.no-forecast")({
         timeout: 10000,
     },
 });
+
+const worldCupData = require('./worldCupData');
 
 const app = express();
 
@@ -20,9 +21,6 @@ if (!Object.values) {
 // Middlewares
 app.use("/icons", express.static("icons"));
 app.use(express.json());
-
-// Data er hentet fra https://github.com/lsv/fifa-worldcup-2018
-var worldcupData = JSON.parse(fs.readFileSync("./worldcup2018.json", "utf8"));
 
 let deltakerId = 0;
 
@@ -82,17 +80,7 @@ const decorateMatchWithLinks = (match) => {
 };
 
 const matches = () => {
-    let groupMatches = Object.values(worldcupData.groups).reduce(
-        (allMatches, group) => allMatches.concat(Object.values(group.matches)).map(decorateMatchWithLinks).map(addAttendeesToMatch),
-        []
-    );
-
-    let knockoutMatches = Object.values(worldcupData.knockout).reduce(
-        (allMatches, round) => allMatches.concat(Object.values(round.matches)).map(decorateMatchWithLinks).map(addAttendeesToMatch),
-        []
-    );
-
-    return [...groupMatches, ...knockoutMatches];
+    return worldCupData.matches.map(decorateMatchWithLinks).map(addAttendeesToMatch);
 };
 
 app.get("/api/matches", (req, res) => {
