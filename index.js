@@ -3,6 +3,14 @@ const fs = require('fs');
 const values = require('object.values');
 const auth = require('basic-auth');
 
+const yrno = require("yr.no-forecast")({
+    version: "1.9", // this is the default if not provided,
+    request: {
+        // make calls to locationforecast timeout after 15 seconds
+        timeout: 10000,
+    },
+});
+
 const app = express();
 
 if (!Object.values) {
@@ -10,6 +18,7 @@ if (!Object.values) {
 }
 
 // Middlewares
+app.use("/icons", express.static("icons"));
 app.use(express.json());
 
 // Data er hentet fra https://github.com/lsv/fifa-worldcup-2018
@@ -28,7 +37,7 @@ const validateRequest = (req, res) => {
         res.status(401).send({message: 'Did you forget to pass basic auth credentials?'});
         return false;
     }
-    if (user.name !== 'kontraskjaeret' || user.pass !== 'Sommerjobb2018') {
+    if (user.name !== 'kontraskjaeret' || user.pass !== 'Sommerjobb2019') {
         res.status(401).send({message: 'Did you pass correct credentials?'});
         return false;
     }
@@ -95,6 +104,9 @@ app.get("/api/matches", (req, res) => {
     });
 });
 
+
+// ******* Deltagere ********
+
 app.get('/api/matches/attendees/:matchId', (req, res) => {
     if(!validateRequest(req, res)) {
         return;
@@ -147,6 +159,77 @@ app.delete('/api/attendees/:id', (req, res) => {
     deltakelser = deltakelser.filter(deltakelse => deltakelse.id === req.params.id);
     res.status(204).send();
 });
+
+
+/* WEATHER */
+const KONTRASKJAERET = {
+    lat: 59.910341,
+    lon: 10.736276,
+  };
+  
+let weatherData = {};
+let lastTimeDataWasFetched = new Date(0);
+
+app.get("/api/weather", (req, res) => {
+let time = new Date(req.query.time);
+if (
+    !req.query.time ||
+    Object.prototype.toString.call(time) !== "[object Date]" ||
+    isNaN(time.getTime())
+) {
+    const tomorrowAtThisTime = new Date(new Date().setDate(new Date().getDate()+1)).toISOString();
+    res
+    .status(504)
+    .send(
+        `APIet krever at en gyldig datostreng blir sendt med requesten på dette formatet: /api/weather?time=${tomorrowAtThisTime}`,
+    );
+    return;
+}
+if (new Date() - lastTimeDataWasFetched > 180000) {
+    yrno
+    .getWeather(KONTRASKJAERET)
+    .then(weather => {
+        lastTimeDataWasFetched = new Date();
+        weatherData = weather;
+        respondToRequestForWeather(weatherData, time, res);
+    })
+    .catch(err => {
+        console.log(err);
+        res.status(500).send(err);
+        return;
+    });
+} else {
+    respondToRequestForWeather(weatherData, time, res);
+}
+});
+
+function respondToRequestForWeather(weather, forecastTime, res) {
+let forecastArray = Object.values(weather.times);
+if (
+    forecastTime < new Date(forecastArray[0].from) ||
+    forecastTime > new Date(forecastArray[forecastArray.length - 1].from)
+) {
+    res.send({});
+    return;
+}
+let forecast = forecastArray.reduce((acc, val) => {
+    if (forecastTime >= new Date(val.from)) {
+    return val;
+    }
+    return acc;
+}, {});
+forecast.symbolUrl = getSymbolUrl(forecast.symbolNumber);
+res.send(forecast);
+}
+
+function getSymbolUrl(symbolNumber) {
+let symbolString = String(symbolNumber);
+if (symbolString.length === 1) {
+    symbolString = "0" + symbolString;
+}
+return "/icons/" + symbolString + ".svg";
+}
+
 
 // PORT
 const port = process.env.PORT || 3001;
