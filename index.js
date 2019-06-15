@@ -2,6 +2,7 @@ const express = require('express');
 const fs = require('fs');
 const values = require('object.values');
 const auth = require('basic-auth');
+const cors = require("cors");
 const yrno = require("yr.no-forecast")({
     version: "1.9", // this is the default if not provided,
     request: {
@@ -83,7 +84,8 @@ const matches = () => {
     return worldCupData.matches.map(decorateMatchWithLinks).map(addAttendeesToMatch);
 };
 
-app.get("/api/matches", (req, res) => {
+app.options("/api/matches", cors())
+app.get("/api/matches", cors(), (req, res) => {
     if(!validateRequest(req, res)) {
         return;
     }
@@ -154,7 +156,7 @@ const KONTRASKJAERET = {
     lat: 59.910341,
     lon: 10.736276,
   };
-  
+
 let weatherData = {};
 let lastTimeDataWasFetched = new Date(0);
 
