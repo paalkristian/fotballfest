@@ -101,8 +101,9 @@ app.get('/api/matches/attendees/:matchId', (req, res) => {
     if(!validateRequest(req, res)) {
         return;
     }
+    
     var matchId = req.params.matchId;
-    res.send(matches().filter(match => match.name == matchId).map(match => match.attendees));
+    res.send(matches().filter(match => match.id == parseInt(matchId, 10)).map(match => match.attendees));
 });
 
 function validateAttendance(req, res) {
@@ -142,11 +143,11 @@ app.delete('/api/attendees/:id', (req, res) => {
     if(!validateRequest(req, res)) {
         return;
     }
-    if (typeof deltakelser.find(deltakelse => deltakelse.id === req.params.id) === 'undefined') {
+    if (typeof deltakelser.find(deltakelse => deltakelse.id === parseInt(req.params.id, 10)) === 'undefined') {
         res.status(400).send({message: 'Could not find attendance with id: ' + req.params.id});
         return;
     }
-    deltakelser = deltakelser.filter(deltakelse => deltakelse.id === req.params.id);
+    deltakelser = deltakelser.filter(deltakelse => deltakelse.id !== parseInt(req.params.id, 10));
     res.status(204).send();
 });
 
